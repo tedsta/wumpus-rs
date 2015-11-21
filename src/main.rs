@@ -3,10 +3,12 @@ extern crate opengl_graphics;
 extern crate graphics;
 extern crate glutin_window;
 
-use opengl_graphics::{GlGraphics, OpenGL};
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashSet;
+use std::rc::Rc;
+
 use graphics::*;
+use opengl_graphics::{GlGraphics, OpenGL};
 use piston::window::{AdvancedWindow, WindowSettings};
 use piston::input::*;
 use piston::event_loop::*;
@@ -23,10 +25,11 @@ fn main() {
     let ref mut gl = GlGraphics::new(opengl);
 
     let mut wumpus_world = WumpusWorld::new(10, 10);
+    wumpus_world.add_thing(5, 5, Object::Wumpus);
     wumpus_world.run(window.clone(), gl);
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub enum Object {
     Hero,
     Wumpus,
@@ -37,10 +40,25 @@ pub enum Object {
     Glimmer,
 }
 
+impl Object {
+    pub fn clue(&self) -> Option<Object> {
+        use Object::*;
+        match *self {
+            Hero => None,
+            Wumpus => Some(Stench),
+            Stench => None,
+            Pit => Some(Breeze),
+            Breeze => None,
+            Gold => Some(Glimmer),
+            Glimmer => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Tile {
-    things: Vec<Object>, // Things inside the tile
-    discovered: bool,
+    things: HashSet<Object>, // Things inside the tile
+    visible: bool,
 }
 
 struct WumpusWorld {
@@ -54,7 +72,7 @@ impl WumpusWorld {
         WumpusWorld {
             width: width,
             height: height,
-            grid: vec![vec![Tile { things: vec![], discovered: false }; width]; height],
+            grid: vec![vec![Tile { things: HashSet::new(), visible: false }; width]; height],
         }
     }
 
@@ -80,6 +98,25 @@ impl WumpusWorld {
                 });
             });
             e.update(|_| { });
+        }
+    }
+    
+    pub fn add_thing(&mut self, x: usize, y: usize, thing: Object) {
+        self.grid[y][x].things.insert(thing);
+        if let Some(clue) = thing.clue() {
+            // Add clues to 4 adjacent squares
+            if x > 0 {
+                self.grid[y][x-1].things.insert(clue);
+            }
+            if x < self.width-1 {
+                self.grid[y][x+1].things.insert(clue);
+            }
+            if y > 0 {
+                self.grid[y-1][x].things.insert(clue);
+            }
+            if y < self.height-1 {
+                self.grid[y+1][x].things.insert(clue);
+            }
         }
     }
 }
