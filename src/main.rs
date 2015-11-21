@@ -2,6 +2,7 @@ extern crate piston;
 extern crate opengl_graphics;
 extern crate graphics;
 extern crate glutin_window;
+extern crate rand;
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -18,9 +19,9 @@ use glutin_window::GlutinWindow as Window;
 fn main() {
     let opengl = OpenGL::V3_2;
     let window: Window =
-        WindowSettings::new("piston-example-user_input", [500, 600]).exit_on_esc(true)
-                                                                    .opengl(opengl)
-                                                                    .build().unwrap();
+        WindowSettings::new("CS440 Wumpus World", [500, 600]).exit_on_esc(true)
+                                                             .opengl(opengl)
+                                                             .build().unwrap();
 
     let window = Rc::new(RefCell::new(window));
     let ref mut gl = GlGraphics::new(opengl);
@@ -327,6 +328,9 @@ impl WumpusWorld {
             }
         }
 
+        let w = self.width;
+        let h = self.height;
+
         self.hero_x = 0;
         self.hero_y = 0;
         self.arrows = 1;
@@ -335,8 +339,10 @@ impl WumpusWorld {
         self.state = GameState::Playing;
 
         // Randomize board
-        self.add_thing(5, 5, Object::Wumpus);
-        self.add_thing(3, 5, Object::Pit);
-        self.add_thing(9, 9, Object::Gold);
+        self.add_thing(rand::random::<usize>()%w, rand::random::<usize>()%h, Object::Wumpus);
+        self.add_thing(rand::random::<usize>()%w, rand::random::<usize>()%h, Object::Gold);
+        for _ in 0..4 {
+            self.add_thing(rand::random::<usize>()%w, rand::random::<usize>()%h, Object::Pit);
+        }
     }
 }
